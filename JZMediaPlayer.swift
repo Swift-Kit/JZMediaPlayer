@@ -1,6 +1,5 @@
 //
 //  JZMediaPlayer.swift
-//  Syrinx
 //
 //  Created by Joey Zhou on 1/26/16.
 //  Copyright © 2016 Dev Branch, Inc. All rights reserved.
@@ -12,7 +11,7 @@ import AwesomeCache
 
 class JZMediaPlayer: NSObject {
     
-    var player = MPMusicPlayerController.systemMusicPlayer()
+    var player = MPMusicPlayerController.applicationMusicPlayer()
     var testForMusicPlayingTimer: NSTimer!
     var currentMediaIndex: Int!
     var currentTimestamp: NSTimeInterval!
@@ -30,7 +29,7 @@ class JZMediaPlayer: NSObject {
     }
     
     // MARK: Basic start/stop
-    func startPlayer() {
+    func startPlayer() -> MPMusicPlayerController {
         player.setQueueWithItemCollection(mediaCollection)
         
         // set current item if it's not nil
@@ -42,10 +41,10 @@ class JZMediaPlayer: NSObject {
             player.currentPlaybackTime = currentTimestamp
         }
         
-        player.play()
-        
         // hack to make sure player is playing
         testForMusicPlayingTimer = NSTimer.scheduledTimerWithTimeInterval(NSTimeInterval(1), target: self, selector: "testForMusicPlaying", userInfo: nil, repeats: false)
+        
+        return player
     }
     
     func stopPlayer() {
@@ -69,8 +68,9 @@ class JZMediaPlayer: NSObject {
             print("Saving:")
             print("CurrentIndex: \(currentMediaIndex.description)")
             print("CurrentTimestamp: \(currentTimestamp.description)")
+            
             cache["currentMediaIndex"] = currentMediaIndex.description
-            cache["currentIndex"] = currentMediaIndex.description
+            cache["currentTimestamp"] = currentTimestamp.description
             print("Saved player to disk.")
         } catch _ {
             print("Something went wrong with AwesomeCache")
@@ -83,8 +83,11 @@ class JZMediaPlayer: NSObject {
             let cache = try Cache<NSString>(name:"cache")
             currentTimestamp = cache["currentTimestamp"]?.doubleValue
             currentMediaIndex = cache["currentMediaIndex"]?.integerValue
-            print("CurrentIndex: \(currentMediaIndex.description)")
-            print("CurrentTimestamp: \(currentTimestamp.description)")
+            
+            if let i = currentMediaIndex, t = currentTimestamp {
+                print("CurrentIndex: \(i)")
+                print("CurrentTimestamp: \(t)")
+            }
             
             print("Loaded player to disk.")
         } catch _ {
@@ -119,10 +122,21 @@ class JZMediaPlayer: NSObject {
         else
         {
             if let title = player.nowPlayingItem?.title{
-                print("Current song: \(title)\nCurrent time:\(player.currentPlaybackTime)")
+                let timeStr = stringFromTimeInterval(player.currentPlaybackTime)
+                print("Current song: \(title)\nCurrent time:\(timeStr)")
             }
+            
+            
             testForMusicPlayingTimer.invalidate()
         }
+    }
+    
+    func stringFromTimeInterval(interval: NSTimeInterval) -> String {
+        let interval = Int(interval)
+        let seconds = interval % 60
+        let minutes = (interval / 60) % 60
+        let hours = (interval / 3600)
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
     
 }
